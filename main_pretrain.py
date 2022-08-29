@@ -24,7 +24,7 @@ import torchvision.datasets as datasets
 
 import timm
 
-assert timm.__version__ == "0.3.2"  # version check
+# assert timm.__version__ == "0.3.2"  # version check
 import timm.optim.optim_factory as optim_factory
 
 import util.misc as misc
@@ -33,6 +33,41 @@ from util.misc import NativeScalerWithGradNormCount as NativeScaler
 import models_mae
 
 from engine_pretrain import train_one_epoch
+
+# CUDA_VISIBLE_DEVICES=0,1,2,3 python main_pretrain.py --batch_size 128 --model mae_clevr_vit_tiny_patch8_image_224 --input_size 224 \
+# --data_path /common/users/jj691/Datasets/movi-a/movi-a-train-with-label --output_dir ./output_dir --log_dir ./output_dir
+
+# CUDA_VISIBLE_DEVICES=0 taskset -c 0-15 python main_pretrain.py --batch_size 100 --model mae_clevr_vit_tiny_patch8_image_224 --input_size 224 \
+# --data_path /common/users/jj691/Datasets/movi-a/movi-a-train-with-label --output_dir ./output_dir/clevr --log_dir ./output_dir/clevr
+
+# CUDA_VISIBLE_DEVICES=6 taskset -c 0-15 python main_pretrain.py --batch_size 128 --model mae_vit_small_patch8_image_224 --input_size 224 \
+# --data_path /common/users/jj691/Datasets/movi-c/movi-c-train-with-label --output_dir ./output_dir/movi-c --log_dir ./output_dir/movi-c
+
+# CUDA_VISIBLE_DEVICES=5 taskset -c 0-15 python main_pretrain.py --batch_size 128 --model mae_vit_small_patch8_image_224 --input_size 224 --random_resize_min 0.4 \
+# --data_path /common/users/jj691/Datasets/movi-c/movi-c-train-with-label --output_dir ./output_dir/movi-c-random_resize_min-0.4 --log_dir ./output_dir/movi-c-random_resize_min-0.4
+
+# CUDA_VISIBLE_DEVICES=5 taskset -c 0-15 python main_pretrain.py --batch_size 256 --model mae_vit_tiny_patch4_image_128 --input_size 128 --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/texture_tetris/train/images --output_dir ./output_dir/texture_tetris_mae_vit_tiny_patch4_image_128 --log_dir ./output_dir/texture_tetris_mae_vit_tiny_patch4_image_128/log
+
+# CUDA_VISIBLE_DEVICES=6 taskset -c 16-31 python main_pretrain.py --batch_size 128 --model mae_vit_tiny_patch2_image_128 --input_size 128 --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/texture_tetris/train/images --output_dir ./output_dir/texture_tetris_mae_vit_tiny_patch2_image_128 --log_dir ./output_dir/texture_tetris_mae_vit_tiny_patch2_image_128/log
+
+# CUDA_VISIBLE_DEVICES=0 taskset -c 32-47 python main_pretrain.py --batch_size 128 --model mae_vit_small_patch8_image_128 --input_size 128 --inp_no_norm --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/movi-e/movi-e-train-with-label/images --output_dir ./output_dir/movi-e-image-128-no-norm --log_dir ./output_dir/movi-e-image-128-no-norm
+
+# CUDA_VISIBLE_DEVICES=1 taskset -c 48-63 python main_pretrain.py --batch_size 128 --model mae_vit_small_patch8_image_128 --input_size 128 --inp_no_norm --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/movi-c/movi-c-train-with-label/images --output_dir ./output_dir/movi-c-image-128-no-norm --log_dir ./output_dir/movi-c-image-128-no-norm
+
+# CUDA_VISIBLE_DEVICES=3 taskset -c 8-16 python main_pretrain.py --batch_size 128 --model mae_vit_tiny_patch8_dec128d4b_128 --input_size 128 --inp_no_norm --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/texture_dsprite/images_48 --output_dir ./output_dir/texture_dsprite_images_48 --log_dir ./output_dir/texture_dsprite_images_48
+
+# CUDA_VISIBLE_DEVICES=0 taskset -c 32-47 python main_pretrain.py --batch_size 128 --model mae_vit_tiny_patch2_image_128_emb_64_head_8 --input_size 128 --inp_no_norm --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/movi-e/movi-e-train-with-label/images --output_dir ./output_dir/movi-e-image-128-no-norm-mae_vit_tiny_patch2_image_128_emb_64_head_8 \
+# --log_dir ./output_dir/movi-e-image-128-no-norm-mae_vit_tiny_patch2_image_128_emb_64_head_8
+
+# CUDA_VISIBLE_DEVICES=1 taskset -c 48-63 python main_pretrain.py --batch_size 128 --model mae_vit_tiny_patch2_image_128_emb_64_head_8 --input_size 128 --inp_no_norm --interpolation_mode bilinear \
+# --data_path /common/users/jj691/Datasets/movi-c/movi-c-train-with-label/images --output_dir ./output_dir/movi-c-image-128-no-norm-mae_vit_tiny_patch2_image_128_emb_64_head_8 \
+# --log_dir ./output_dir/movi-c-image-128-no-norm-mae_vit_tiny_patch2_image_128_emb_64_head_8
 
 
 def get_args_parser():
@@ -101,6 +136,15 @@ def get_args_parser():
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
 
+    parser.add_argument('--random_resize_min', default=0.2, type=float,
+                        help='Min value of random resize in data augmentation')
+
+    parser.add_argument('--interpolation_mode', default='bicubic', type=str, choices=['bicubic', 'bilinear', 'nearest'],
+                        help='Interpolation mode for resizing in data augmentation') # options=['bicubic', 'bilinear', 'nearest'],
+
+    parser.add_argument('--inp_no_norm', action='store_true',
+                        help='if normalizing the image')
+
     return parser
 
 
@@ -119,13 +163,24 @@ def main(args):
 
     cudnn.benchmark = True
 
+    if args.interpolation_mode == 'bicubic':
+        interpolation = transforms.InterpolationMode.BICUBIC
+    elif args.interpolation_mode == 'bilinear':
+        interpolation = transforms.InterpolationMode.BILINEAR
+    elif args.interpolation_mode == 'nearest':
+        interpolation = transforms.InterpolationMode.NEAREST
+    else:
+        raise ValueError('Unknown interpolation mode: {}'.format(args.interpolation_mode))
+
     # simple augmentation
     transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(args.input_size, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+            transforms.RandomResizedCrop(args.input_size, scale=(args.random_resize_min, 1.0), interpolation=interpolation),  # 3 is bicubic
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
+            transforms.Normalize(mean=[0.485, 0.456, 0.406] if not args.inp_no_norm else [0., 0., 0.],
+                                 std=[0.229, 0.224, 0.225] if not args.inp_no_norm else [1., 1., 1.])])
+    # dataset_train = datasets.ImageFolder(os.path.join(args.data_path, 'train'), transform=transform_train)
+    dataset_train = datasets.ImageFolder(args.data_path, transform=transform_train)
     print(dataset_train)
 
     if True:  # args.distributed:
@@ -176,12 +231,20 @@ def main(args):
         model_without_ddp = model.module
     
     # following timm: set wd as 0 for bias and norm layers
-    param_groups = optim_factory.add_weight_decay(model_without_ddp, args.weight_decay)
+    param_groups = optim_factory.param_groups_weight_decay(model_without_ddp, args.weight_decay)
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr, betas=(0.9, 0.95))
     print(optimizer)
     loss_scaler = NativeScaler()
 
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
+
+
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad: continue
+        param = parameter.numel()
+        total_params += param
+    print(f"Total Trainable Params: {total_params}")
 
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
